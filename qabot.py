@@ -32,6 +32,7 @@ def get_response_from_chatgpt(user_input):
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo-16k",
         messages=[
+            {"role": "system", "content": "Bạn là một trợ lý thông minh. Hãy trả lời ngắn gọn và đúng trọng tâm câu hỏi của người dùng."},
             {"role": "user", "content": user_input}
         ]
     )
