@@ -49,14 +49,17 @@ def read_pdf(file):
     return text
 
 # Function to call OpenAI API / ChatGPT
-def get_response_from_chatgpt(user_input, context):
+def get_response_from_chatgpt(user_input, context=None):
+    messages = [
+        {"role": "system", "content": "Bạn là một trợ lý thông minh. Hãy trả lời ngắn gọn và đúng trọng tâm câu hỏi của người dùng. Giới hạn câu trả lời của bạn trong 200 từ. Hãy trả lời chính xác các câu hỏi, và thông tin trả lời câu hỏi chỉ được lấy trực tiếp từ thông tin đã cung cấp."},
+        {"role": "user", "content": user_input}
+    ]
+    if context:
+        messages.insert(1, {"role": "user", "content": f"Văn bản sau đây là từ các tài liệu PDF: {context}"})
+    
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo-16k",
-        messages=[
-            {"role": "system", "content": "Bạn là một trợ lý thông minh. Hãy trả lời ngắn gọn và đúng trọng tâm câu hỏi của người dùng. Giới hạn câu trả lời của bạn trong 200 từ. Hãy trả lời chính xác các câu hỏi, và thông tin trả lời câu hỏi chỉ được lấy trực tiếp từ thông tin đã cung cấp."},
-            {"role": "user", "content": f"Văn bản sau đây là từ các tài liệu PDF: {context}"},
-            {"role": "user", "content": user_input}
-        ]
+        messages=messages
     )
 
     response_text = response.choices[0]["message"]["content"]  # Extract content from response
@@ -97,8 +100,12 @@ def main():
         user_input = st.text_input("Nhập câu hỏi của bạn vào đây:", st.session_state.user_input)
         submit_button = st.form_submit_button(label="Gửi")
         
-        if submit_button and uploaded_files:
-            response_text = get_response_from_chatgpt(user_input, combined_text)
+        if submit_button:
+            if uploaded_files:
+                response_text = get_response_from_chatgpt(user_input, combined_text)
+            else:
+                response_text = get_response_from_chatgpt(user_input)
+                
             st.session_state.history.append({"question": user_input, "answer": response_text})
             st.session_state.user_input = ""  # Clear the input box after sending the question
             st.experimental_rerun()  # Rerun the script to update the UI
