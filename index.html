@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Interface</title>
+</head>
+<body>
+    <div class="container">
+        <div class="chat-box" id="chat-box">
+            <!-- Chat messages will be displayed here -->
+        </div>
+        <input type="text" id="user-input" placeholder="Nhập câu hỏi của bạn...">
+        <button id="send-btn">Gửi</button>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+    const chatBox = document.getElementById('chat-box');
+    const userInput = document.getElementById('user-input');
+    const sendBtn = document.getElementById('send-btn');
+
+    sendBtn.addEventListener('click', function() {
+        const question = userInput.value.trim();<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatGPT App</title>
+</head>
+<body>
+    <h1>ChatGPT App</h1>
+    <form action="/" method="post">
+        <label for="question">Nhập câu hỏi của bạn:</label><br>
+        <input type="text" id="question" name="question"><br>
+        <input type="submit" value="Gửi">
+    </form>
+    <h2>Câu trả lời:</h2>
+    <p>{{ response }}</p>
+</body>
+</html>
+
+        if (question !== '') {
+            appendMessage('user', question);
+            userInput.value = '';
+            // Call your function to process the question here
+        }
+    });
+
+    function appendMessage(sender, message) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = sender === 'user' ? 'user-message' : 'assistant-message';
+        messageDiv.textContent = message;
+        chatBox.appendChild(messageDiv);
+        chatBox.scrollTop = chatBox.scrollHeight; // Auto scroll to bottom
+    }
+});
+
+    </script>
+</body>
+</html>
+<style>
+    body {
+    font-family: Arial, sans-serif;
+}
+
+.container {
+    width: 400px;
+    margin: 50px auto;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.chat-box {
+    height: 300px;
+    overflow-y: scroll;
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+#user-input {
+    width: 80%;
+    padding: 5px;
+    margin-right: 10px;
+}
+
+#send-btn {
+    padding: 5px 10px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+}
+
+</style>
