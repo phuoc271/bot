@@ -1,0 +1,10 @@
+PyPDF2
+transformers
+streamlit
+openai
+torch
+tensorflow
+flax
+streamlit
+watchdog
+dotenv
