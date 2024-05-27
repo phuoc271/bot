@@ -1,6 +1,8 @@
 import streamlit as st
 import PyPDF2
 import openai
+import requests
+import json
 import os
 from transformers import GPT2Tokenizer
 
@@ -47,6 +49,29 @@ def read_pdf(file):
     for page in reader.pages:
         text += page.extract_text()
     return text
+
+
+# Hàm gọi API /api/chat để nhận phản hồi
+def get_response_from_api(user_input):
+    url = "http://your-api-url.com/api/chat"
+    headers = {"Content-Type": "application/json"}
+    payload = {"message": user_input}
+    
+    response = requests.post(url, headers=headers, data=json.dumps(payload))
+    if response.status_code == 200:
+        return response.json().get("response", "Không có phản hồi từ API.")
+    else:
+        return "Lỗi khi gọi API."
+
+# Hàm gọi API /api/histories để lấy lịch sử trò chuyện
+def get_chat_history():
+    url = "http://your-api-url.com/api/histories"
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        return []
+
 
 # Danh sách các từ khóa hoặc cụm từ liên quan đến tư vấn của công ty
 company_keywords = ["tư vấn", "công ty", "dịch vụ", "sản phẩm", "hỗ trợ" , "trang phục" , "điều" ]
