@@ -1,6 +1,7 @@
 import streamlit as st
 import PyPDF2
 import openai
+import os
 from transformers import GPT2Tokenizer
 
 # Load GPT-2 tokenizer
@@ -37,8 +38,7 @@ css = """
 st.markdown(css, unsafe_allow_html=True)
 
 # Load API key from apikey.txt file
-with open("apikey.txt", "r") as f:
-    openai.api_key = f.readline().strip()
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Function to read PDF content
 def read_pdf(file):
@@ -48,22 +48,41 @@ def read_pdf(file):
         text += page.extract_text()
     return text
 
+# Danh sách các từ khóa hoặc cụm từ liên quan đến tư vấn của công ty
+company_keywords = ["tư vấn", "công ty", "dịch vụ", "sản phẩm", "hỗ trợ" , "trang phục" , "điều" ]
+
+# Function to call OpenAI API / ChatGPT
 # Function to call OpenAI API / ChatGPT
 def get_response_from_chatgpt(user_input, context=None):
-    messages = [
-        {"role": "system", "content": "Bạn là một trợ lý thông minh. Hãy trả lời ngắn gọn và đúng trọng tâm câu hỏi của người dùng. Giới hạn câu trả lời của bạn trong 200 từ. Hãy trả lời chính xác các câu hỏi, và thông tin trả lời câu hỏi chỉ được lấy trực tiếp từ thông tin đã cung cấp."},
-        {"role": "user", "content": user_input}
-    ]
-    if context:
-        messages.insert(1, {"role": "user", "content": f"Văn bản sau đây là từ các tài liệu PDF: {context}"})
+    # Biến đếm để kiểm tra xem người dùng đã nhập một câu hỏi liên quan đến tư vấn của công ty hay không
+    relevant_question_count = 0
     
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo-16k",
-        messages=messages
-    )
+    # Kiểm tra mỗi từ khóa trong danh sách company_keywords
+    for keyword in company_keywords:
+        if keyword in user_input.lower():
+            relevant_question_count += 1
+    
+    # Kiểm tra giá trị của biến đếm
+    if relevant_question_count > 0:
+        messages = [
+            {"role": "system", "content": "Bạn là một trợ lý thông minh. Bạn chỉ được trả lời các câu hỏi liên quan đến tư vấn của công ty."},
+            {"role": "user", "content": user_input}
+        ]
+        
+        if context:
+            messages.insert(1, {"role": "user", "content": f"Văn bản sau đây là từ các tài liệu PDF: {context}"})
+        
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo-16k",
+            messages=messages,
+            
+        )
+        
+        response_text = response.choices[0]["message"]["content"]  # Extract content from response
+        return response_text
+    else:
+        return "Câu hỏi của bạn không liên quan đến mục đích tư vấn của công ty."
 
-    response_text = response.choices[0]["message"]["content"]  # Extract content from response
-    return response_text
 
 # Main function to control the interface
 def main():
@@ -105,10 +124,11 @@ def main():
                 response_text = get_response_from_chatgpt(user_input, combined_text)
             else:
                 response_text = get_response_from_chatgpt(user_input)
+
                 
             st.session_state.history.append({"question": user_input, "answer": response_text})
             st.session_state.user_input = ""  # Clear the input box after sending the question
             st.experimental_rerun()  # Rerun the script to update the UI
 
 if __name__ == "__main__":
-    main() 
+    main()
