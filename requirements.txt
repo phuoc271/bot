@@ -14,3 +14,4 @@ sentence-transformers
 gpt4all
 faiss-cpu
 python-dotenv
+flask
