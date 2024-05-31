@@ -1,9 +1,6 @@
 import streamlit as st
 import PyPDF2
-import openai
 import requests
-import json
-import os
 from transformers import GPT2Tokenizer
 
 # Load GPT-2 tokenizer
@@ -34,12 +31,7 @@ css = """
 }
 </style>
 """
-
-# Thêm CSS vào ứng dụng
 st.markdown(css, unsafe_allow_html=True)
-
-# Load API key from environment variable or other source
-openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Function to read PDF content
 def read_pdf(file):
@@ -49,92 +41,95 @@ def read_pdf(file):
         text += page.extract_text()
     return text
 
-# Hàm gọi API /api/chat để nhận phản hồi
-# Hàm gọi API /api/chat để nhận phản hồi
-def get_response_from_api(user_input):
-    url = "http://127.0.0.1:5000/api/chat"  # URL của API local
-    headers = {"Content-Type": "application/json"}
-    payload = {"message": user_input}
-    
-    response = requests.post(url, headers=headers, json=payload)  # Sử dụng json thay vì data
-    if response.status_code == 200:
-        return response.json().get("response", "Không có phản hồi từ API.")
-    else:
-        return "Lỗi khi gọi API."
-
-# Hàm gọi API /api/histories để lấy lịch sử trò chuyện
-def get_chat_history():
-    url = "http://127.0.0.1:5000/api/histories"  # URL của API local
-    response = requests.get(url)
-    if response.status_code == 200:
-        return response.json()
-    else:
-        return []  # Trả về một danh sách trống nếu có lỗi
-
-
-# Danh sách các từ khóa hoặc cụm từ liên quan đến tư vấn của công ty
-company_keywords = ["tư vấn", "công ty", "dịch vụ", "sản phẩm", "hỗ trợ", "trang phục", "điều"]
-
-# Function to call OpenAI API / ChatGPT
-def get_response_from_chatgpt(user_input, context=None):
-    relevant_question_count = sum(keyword in user_input.lower() for keyword in company_keywords)
-    
-    if relevant_question_count > 0:
-        messages = [
-            {"role": "system", "content": "Bạn là một trợ lý thông minh. Bạn chỉ được trả lời các câu hỏi liên quan đến tư vấn của công ty."},
-            {"role": "user", "content": user_input}
-        ]
-        
-        if context:
-            messages.insert(1, {"role": "user", "content": f"Văn bản sau đây là từ các tài liệu PDF: {context}"})
-        
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo-16k",
-            messages=messages,
-        ),
-        
-        return response.choices[0].message.content
-    else:
-        return "Câu hỏi của bạn không liên quan đến mục đích tư vấn của công ty."
+# Function to get response from API
+def get_response_from_api(question, context=None):
+    response = requests.post(
+        "http://127.0.0.1:5000/api/chat",
+        json={"message": question},
+        files={"pdf_file": context} if context else None
+    )
+    return response.json()["response"]
 
 # Main function to control the interface
 def main():
     st.title("Chatbot đọc và trả lời từ nhiều tệp PDF bằng Streamlit")
 
-    uploaded_files = st.file_uploader("Chọn các tệp PDF", type="pdf", accept_multiple_files=True)
-    combined_text = ""
+    col1, col2 = st.columns([1, 3])
 
-    if uploaded_files:
-        for uploaded_file in uploaded_files:
-            combined_text += read_pdf(uploaded_file)
+    with col1:
+        st.header("Lịch sử cuộc trò chuyện")
+        if "conversations" not in st.session_state:
+            st.session_state.conversations = []
+
+        conversation_labels = [f"Cuộc trò chuyện {i+1}: {conv['initial_question']}" for i, conv in enumerate(st.session_state.conversations)]
+        selected_conversation_label = st.selectbox("Chọn cuộc trò chuyện đã lưu", [""] + conversation_labels)
+
+        if selected_conversation_label:
+            index = conversation_labels.index(selected_conversation_label)
+            st.session_state.current_conversation = st.session_state.conversations[index]
+
+    with col2:
+        uploaded_files = st.file_uploader("Chọn các tệp PDF", type="pdf", accept_multiple_files=True)
+        combined_text = ""
+
+        if uploaded_files:
+            for uploaded_file in uploaded_files:
+                combined_text += read_pdf(uploaded_file)
+            
+            tokens = tokenizer.encode(combined_text)
+            if len(tokens) > 16385:
+                st.error("Nội dung văn bản quá dài, cần rút ngắn lại.")
+
+        st.header("Chat với Chatbot")
         
-        tokens = tokenizer.encode(combined_text)
-        if len(tokens) > 16385:
-            st.error("Nội dung văn bản quá dài, cần rút ngắn lại.")
+        if "current_conversation" not in st.session_state:
+            st.session_state.current_conversation = {"initial_question": "", "messages": []}
 
-    st.header("Chat với Chatbot")
-    
-    if "history" not in st.session_state:
-        st.session_state.history = []
+        if st.session_state.current_conversation["messages"]:
+            for message in st.session_state.current_conversation["messages"]:
+                if message["role"] == "user":
+                    st.markdown(f'<div class="chat-box user">{message["content"]}</div>', unsafe_allow_html=True)
+                else:
+                    st.markdown(f'<div class="chat-box bot">{message["content"]}</div>', unsafe_allow_html=True)
 
-    if "user_input" not in st.session_state:
-        st.session_state.user_input = ""
+        with st.form(key="user_input_form", clear_on_submit=True):
+            user_input = st.text_input("Nhập câu hỏi của bạn vào đây:", "")
+            submit_button = st.form_submit_button(label="Gửi")
+            
+            if submit_button:
+                context_file = uploaded_files[0] if uploaded_files else None
+                response_text = get_response_from_api(user_input, context_file)
 
-    if st.session_state.history:
-        for chat in st.session_state.history:
-            st.markdown(f'<div class="chat-box user">{chat["question"]}</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="chat-box bot">{chat["answer"]}</div>', unsafe_allow_html=True)
-            st.markdown("---")
-    
-    with st.form(key="user_input_form", clear_on_submit=True):
-        user_input = st.text_input("Nhập câu hỏi của bạn vào đây:", st.session_state.user_input)
-        submit_button = st.form_submit_button(label="Gửi")
-        
-        if submit_button:
-            response_text = get_response_from_api(user_input)
-            st.session_state.history.append({"question": user_input, "answer": response_text})
-            st.session_state.user_input = ""  # Clear the input box after sending the question
-            st.experimental_rerun()  # Rerun the script to update the UI
+                if not st.session_state.current_conversation["initial_question"]:
+                    st.session_state.current_conversation["initial_question"] = user_input
+
+                st.session_state.current_conversation["messages"].append({"role": "user", "content": user_input})
+                st.session_state.current_conversation["messages"].append({"role": "bot", "content": response_text})
+
+                st.experimental_rerun()  # Rerun the script to update the UI
+
+        # if st.button("Lưu cuộc trò chuyện"):
+        #     st.session_state.conversations.append(st.session_state.current_conversation)
+        #     st.session_state.current_conversation = {"initial_question": "", "messages": []}
+        #     st.experimental_rerun()
+
+        # Define a flag to track if the current conversation has been saved
+        conversation_saved = False
+
+        # Add a button to create a new conversation
+        if st.button("Tạo cuộc trò chuyện mới"):
+            # Save the current conversation only if it hasn't been saved before
+            if not conversation_saved and st.session_state.current_conversation["messages"]:
+                st.session_state.conversations.append(st.session_state.current_conversation)
+                conversation_saved = True
+            
+            # Start a new conversation
+            st.session_state.current_conversation = {"initial_question": "", "messages": []}
+            st.experimental_rerun()
+
+
+
+
 
 if __name__ == "__main__":
     main()
