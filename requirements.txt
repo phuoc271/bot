@@ -1,0 +1,17 @@
+PyPDF2
+transformers
+streamlit
+openai==0.28
+torch
+tensorflow
+flax
+watchdog
+ctransformers
+langchain
+langchain-community
+pypdf
+sentence-transformers
+gpt4all
+faiss-cpu
+python-dotenv
+flask
