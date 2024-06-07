@@ -1,17 +1,16 @@
 import streamlit as st
 import PyPDF2
 import openai
-import requests
-import json
 import os
+import requests
 from transformers import GPT2Tokenizer
-
 # Load GPT-2 tokenizer
 tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
 # CSS tùy chỉnh với class lồng nhau
 css = """
 <style>
+
 .chat-box {
     padding: 10px;
     margin-bottom: 10px;
@@ -38,8 +37,8 @@ css = """
 # Thêm CSS vào ứng dụng
 st.markdown(css, unsafe_allow_html=True)
 
-# Load OpenAI API key from environment variable
-openai.api_key = os.getenv("OPENAI_API_KEY")
+openai.api_key = "sk-proj-pX9SzG2pFHppVyyHfJ61T3BlbkFJG4YJc4P00tdg2e6osgpp"
+
 
 # Function to read PDF content
 def read_pdf(file):
@@ -49,7 +48,37 @@ def read_pdf(file):
         text += page.extract_text()
     return text
 
-# Hàm gọi API /api/chat để nhận phản hồi
+
+# Hàm gọi API /api/history để lấy lịch sử trò chuyện
+def get_chat_history():
+    url = "http://127.0.0.1:5000/api/history"  # URL của API local
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        return []  # Trả về một danh sách trống nếu có lỗi
+
+# Function to call OpenAI API / ChatGPT
+def get_response_from_chatgpt(user_input, context=None):
+    messages = [
+        {"role": "system", "content": "Bạn là một trợ lý thông minh .Luôn trả lời người dùng bằng tiếng việt . Hãy trả lời ngắn gọn và đúng trọng tâm câu hỏi của người dùng. Giới hạn câu trả lời của bạn trong 200 từ. Hãy trả lời chính xác các câu hỏi, và thông tin trả lời câu hỏi chỉ được lấy trực tiếp từ thông tin đã cung cấp."},
+        {"role": "user", "content": user_input}
+    ]
+    if context:
+        messages.insert(1, {"role": "user", "content": f"Văn bản sau đây là từ các tài liệu PDF: {context}"})
+    
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo-16k",
+        messages=messages
+    )
+    
+    response_text = response.choices[0]["message"]["content"]  # Extract content from response
+    
+    # Gửi phản hồi từ ChatGPT tới API local
+    api_response = get_response_from_api(response_text)
+    
+    return api_response
+
 def get_response_from_api(user_input):
     url = "http://127.0.0.1:5000/api/chat"  # URL của API local
     headers = {"Content-Type": "application/json"}
@@ -60,43 +89,7 @@ def get_response_from_api(user_input):
         return response.json().get("response", "Không có phản hồi từ API.")
     else:
         return "Lỗi khi gọi API."
-
-# Hàm gọi API /api/histories để lấy lịch sử trò chuyện
-def get_chat_history():
-    url = "http://127.0.0.1:5000/api/histories"  # URL của API local
-    response = requests.get(url)
-    if response.status_code == 200:
-        return response.json()
-    else:
-        return []  # Trả về một danh sách trống nếu có lỗi
-
-
-# Danh sách các từ khóa hoặc cụm từ liên quan đến tư vấn của công ty
-company_keywords = ["tư vấn", "công ty", "dịch vụ", "sản phẩm", "hỗ trợ", "trang phục", "điều"]
-
-# Function to call OpenAI API / ChatGPT
-def get_response_from_chatgpt(user_input, context=None):
-    relevant_question_count = sum(keyword in user_input.lower() for keyword in company_keywords)
     
-    if relevant_question_count > 0:
-        messages = [
-            {"role": "system", "content": "Bạn là một trợ lý thông minh. Bạn chỉ được trả lời các câu hỏi liên quan đến tư vấn của công ty."},
-            {"role": "user", "content": user_input}
-        ]
-        
-        if context:
-            messages.insert(1, {"role": "user", "content": f"Văn bản sau đây là từ các tài liệu PDF: {context}"})
-        
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo-16k",
-            messages=messages,
-        ),
-        
-        return response.choices[0].message.content
-    else:
-        return "Câu hỏi của bạn không liên quan đến mục đích tư vấn của công ty."
-
-# Main function to control the interface
 def main():
     st.title("Chatbot đọc và trả lời từ nhiều tệp PDF bằng Streamlit")
 
@@ -106,32 +99,61 @@ def main():
     if uploaded_files:
         for uploaded_file in uploaded_files:
             combined_text += read_pdf(uploaded_file)
-       
+        
+        # Check token length
         tokens = tokenizer.encode(combined_text)
         if len(tokens) > 16385:
             st.error("Nội dung văn bản quá dài, cần rút ngắn lại.")
 
     st.header("Chat với Chatbot")
     
-    if "history" not in st.session_state:
-        st.session_state.history = []
+    # Sử dụng hai cột để bố trí giao diện
+    col1, col2 = st.columns(2)
 
-    if "user_input" not in st.session_state:
-        st.session_state.user_input = ""
+    with col1:
+        st.subheader("Lịch sử trò chuyện")
+        history = get_chat_history()
+        if history:  # Kiểm tra nếu lịch sử không rỗng
+            for chat in history:
+                if chat.get("role") == "user":
+                    st.markdown(f'<div class="chat-box user">{chat.get("content", "")}</div>', unsafe_allow_html=True)
+                elif chat.get("role") == "bot":
+                    st.markdown(f'<div class="chat-box bot">{chat.get("content", "")}</div>', unsafe_allow_html=True)
+                st.markdown("---")
+            # Sau khi hiển thị lịch sử trò chuyện từ get_chat_history(), hãy cập nhật vào st.session_state.history
+            st.session_state.history = history
+        else:
+            st.write("Lịch sử trống")
 
-    if st.session_state.history:
-        for chat in st.session_state.history:
-            st.markdown(f'<div class="chat-box user">{chat["question"]}</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="chat-box bot">{chat["answer"]}</div>', unsafe_allow_html=True)
-            st.markdown("---")
-    
+    with col2:
+        st.subheader("Trò chuyện mới")
+        if "history" not in st.session_state:
+            st.session_state.history = []
+
+        if "user_input" not in st.session_state:
+            st.session_state.user_input = ""
+
+        if st.session_state.history:
+            for chat in st.session_state.history:
+                if chat.get("role") == "user":
+                    st.markdown(f'<div class="chat-box user">{chat.get("content", "")}</div>', unsafe_allow_html=True)
+                elif chat.get("role") == "bot":
+                    st.markdown(f'<div class="chat-box bot">{chat.get("content", "")}</div>', unsafe_allow_html=True)
+                st.markdown("---")
+
+    # Form for user input to enable Enter key submission
     with st.form(key="user_input_form", clear_on_submit=True):
         user_input = st.text_input("Nhập câu hỏi của bạn vào đây:", st.session_state.user_input)
         submit_button = st.form_submit_button(label="Gửi")
         
         if submit_button:
-            response_text = get_response_from_api(user_input)
-            st.session_state.history.append({"question": user_input, "answer": response_text})
+            if uploaded_files:
+                response_text = get_response_from_chatgpt(user_input, combined_text)
+            else:
+                response_text = get_response_from_chatgpt(user_input)
+                
+            st.session_state.history.append({"role": "user", "content": user_input})  # Thêm dữ liệu từ người dùng vào lịch sử
+            st.session_state.history.append({"role": "bot", "content": response_text})  # Thêm dữ liệu từ bot vào lịch sử
             st.session_state.user_input = ""  # Clear the input box after sending the question
             st.experimental_rerun()  # Rerun the script to update the UI
 
