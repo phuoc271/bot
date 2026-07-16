@@ -1,0 +1,6 @@
+myenv/
+vectorstores/
+.env
+__pycache__/
+Pipfile
+Pipfile.lock

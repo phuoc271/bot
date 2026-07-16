@@ -1,0 +1,10 @@
+streamlit
+Flask
+requests
+python-dotenv
+PyPDF2
+google-generativeai
+groq
+flask_sqlalchemy
+flask-cors
+python-dotenv
