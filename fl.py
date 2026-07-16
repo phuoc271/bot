@@ -4,17 +4,14 @@ import os
 import requests
 from dotenv import load_dotenv
 
-# Tải cấu hình biến môi trường từ file .env
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)  # Hỗ trợ phân quyền truy cập Cross-Origin
+CORS(app)  
 
-# Khởi tạo API Key từ file .env
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-# Đoạn System Instruction đã tối ưu hóa nghiêm ngặt và viết hay
 system_instruction = (
     "Bạn là một chuyên viên tư vấn nội bộ và bán hàng chuyên nghiệp của công ty. "
     "Nhiệm vụ của bạn là trả lời các câu hỏi dựa TRÊN DUY NHẤT nguồn dữ liệu (database/context) được cung cấp. "
@@ -37,7 +34,6 @@ system_instruction = (
     "\n4. TRÌNH BÀY ĐẸP MẮT: Sử dụng định dạng danh sách (1., 2., 3. hoặc các dấu đầu dòng) để phân tách rõ ràng từng sản phẩm giúp người dùng dễ đọc giống như một chuyên viên chuyên nghiệp."
 )
 
-# Hàm gọi API Groq (Llama 3.3)
 def call_groq(prompt_message, context_text=""):
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
@@ -60,9 +56,7 @@ def call_groq(prompt_message, context_text=""):
     response.raise_for_status()
     return response.json()["choices"][0]["message"]["content"]
 
-# Hàm gọi API Gemini (Đã nâng cấp lên Gemini 3.1 Flash)
 def call_gemini(prompt_message, context_text=""):
-    # Đã lên đời Gemini 3.1 chuẩn chỉ theo ý bạn!
     model_name = "gemini-3.1-flash-lite"  
     
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
@@ -103,7 +97,6 @@ def chat():
     if not message:
         return jsonify({"response": "Bạn chưa nhập câu hỏi."}), 400
 
-    # TH 1: Ép chạy duy nhất Groq
     if model_choice == "Groq (Llama 3.3)":
         try:
             ai_response = call_groq(message, context)
@@ -111,7 +104,6 @@ def chat():
         except Exception as e:
             return jsonify({"response": f"Lỗi khi kết nối với Groq: {str(e)}"}), 500
 
-    # TH 2: Ép chạy duy nhất Gemini
     elif model_choice == "Gemini (2.0 Flash)":
         try:
             ai_response = call_gemini(message, context)
@@ -119,16 +111,13 @@ def chat():
         except Exception as e:
             return jsonify({"response": f"Lỗi khi kết nối với Gemini: {str(e)}"}), 500
 
-    # TH 3: Chế độ Tự động (Auto) - Cực kỳ an toàn, lỗi bên này nhảy sang bên kia
     else:
         try:
-            # Ưu tiên gọi Groq trước cho nhanh
             ai_response = call_groq(message, context)
             return jsonify({"response": ai_response})
         except Exception as groq_error:
             print(f"Groq dính lỗi: {groq_error}. Tự động chuyển kênh sơ cua sang Gemini...")
             try:
-                # Nếu Groq sập hoặc hết lượt dùng (Rate Limit), chạy Gemini dự phòng
                 ai_response = call_gemini(message, context)
                 return jsonify({"response": ai_response})
             except Exception as gemini_error:

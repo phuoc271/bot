@@ -83,13 +83,12 @@ def read_json(file):
     except Exception as e:
         return {}
 
-# Bổ sung tham số model_choice truyền sang API Backend
 def get_response_from_api(message, context=None, model_choice="Tự động (Auto)"):
     url = "http://127.0.0.1:5000/api/chat"
     payload = {
         "message": message,
         "context": context,
-        "model": model_choice  # Gửi lựa chọn model qua API
+        "model": model_choice  
     }
     try:
         response = requests.post(url, json=payload, timeout=30)
@@ -103,10 +102,8 @@ def get_response_from_api(message, context=None, model_choice="Tự động (Aut
 def main():
     st.title("Chatbot Tư Vấn Doanh Nghiệp (Groq & Gemini)")
     
-    # --- SIDEBAR THIẾT LẬP ---
     st.sidebar.header("Cấu hình AI & Tài liệu")
     
-    # Nút chọn model giống hệt trong hình ảnh của bạn
     model_choice = st.sidebar.selectbox(
         "Chọn Model AI tư vấn:",
         ["Tự động (Auto)", "Groq (Llama 3.3)", "Gemini (3.1 Flash Lite)"],
@@ -182,21 +179,17 @@ def main():
             if st.sidebar.button("X", key=f"delete_{i}", help="Xóa cuộc trò chuyện này"):
                 delete_chat(i)
 
-    # --- KHU VỰC HIỂN THỊ CHAT ---
     st.subheader("Trò chuyện")
     if st.session_state.current_chat["questions"]:
         for q, a in zip(st.session_state.current_chat["questions"], st.session_state.current_chat["answers"]):
-            # Khung chat người dùng
             st.markdown(f'<div class="chat-box user"><b>Bạn:</b><br>{q}</div>', unsafe_allow_html=True)
             
-            # Khung chat chatbot (Tách riêng để hiển thị markdown chuẩn giúp click được link)
             st.markdown('<div class="chat-box bot"><b>Trợ lý:</b></div>', unsafe_allow_html=True)
             st.markdown(a)
             st.markdown("---")
     else:
         st.info("Hãy bắt đầu cuộc hội thoại bằng cách nhập câu hỏi phía dưới!")
 
-    # --- KHU VỰC NHẬP LIỆU (FORM) ---
     with st.form(key="user_input_form", clear_on_submit=True):
         user_input = st.text_input("Nhập câu hỏi của bạn:", "")
         col_send, col_new = st.columns([1, 1])
