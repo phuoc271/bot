@@ -8,3 +8,4 @@ groq
 flask_sqlalchemy
 flask-cors
 python-dotenv
+langchain-community unstructured[docx,pdf]                                        
