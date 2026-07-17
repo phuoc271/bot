@@ -3,6 +3,7 @@ from flask_cors import CORS
 import os
 import requests
 from dotenv import load_dotenv
+from langchain_community.document_loaders import TextLoader, UnstructuredWordDocumentLoader, PyPDFLoader
 
 load_dotenv()
 
@@ -33,6 +34,19 @@ system_instruction = (
     
     "\n4. TRÌNH BÀY ĐẸP MẮT: Sử dụng định dạng danh sách (1., 2., 3. hoặc các dấu đầu dòng) để phân tách rõ ràng từng sản phẩm giúp người dùng dễ đọc giống như một chuyên viên chuyên nghiệp."
 )
+
+def extract_text_from_file(file_path):
+    if file_path.endswith('.txt'):
+        loader = TextLoader(file_path, encoding='utf-8')
+    elif file_path.endswith('.docx'):
+        loader = UnstructuredWordDocumentLoader(file_path)
+    elif file_path.endswith('.pdf'):
+        loader = PyPDFLoader(file_path)
+    else:
+        return ""
+    
+    docs = loader.load()
+    return "\n".join([doc.page_content for doc in docs])
 
 def call_groq(prompt_message, context_text=""):
     url = "https://api.groq.com/openai/v1/chat/completions"
@@ -104,7 +118,7 @@ def chat():
         except Exception as e:
             return jsonify({"response": f"Lỗi khi kết nối với Groq: {str(e)}"}), 500
 
-    elif model_choice == "Gemini (2.0 Flash)":
+    elif model_choice == "Gemini (3.1 Flash)":
         try:
             ai_response = call_gemini(message, context)
             return jsonify({"response": ai_response})

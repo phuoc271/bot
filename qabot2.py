@@ -100,7 +100,7 @@ def get_response_from_api(message, context=None, model_choice="Tự động (Aut
         return f"Không thể kết nối tới Backend Flask: {str(e)}"
 
 def main():
-    st.title("Chatbot Tư Vấn Doanh Nghiệp (Groq & Gemini)")
+    st.title("Chatbot Tư Vấn Doanh Nghiệp")
     
     st.sidebar.header("Cấu hình AI & Tài liệu")
     
@@ -122,7 +122,7 @@ def main():
     
     uploaded_files = st.sidebar.file_uploader(
         "Chọn các tệp dữ liệu hướng dẫn cho chatbot", 
-        type=["pdf", "json"], 
+        type=["pdf", "json", "docx", "txt", "md"],
         accept_multiple_files=True
     )
 
@@ -141,6 +141,12 @@ def main():
             elif uploaded_file.name.endswith(".json"):
                 json_data = read_json(uploaded_file)
                 combined_text += json.dumps(json_data, indent=4, ensure_ascii=False) + "\n"
+            elif uploaded_file.name.endswith(".txt"):
+                combined_text += uploaded_file.read().decode("utf-8") + "\n"
+            elif uploaded_file.name.endswith(".docx"):
+                import docx 
+                doc = docx.Document(uploaded_file)
+                combined_text += "\n".join([p.text for p in doc.paragraphs]) + "\n"
         
         if is_valid_files:
             total_chars = len(combined_text)
@@ -185,7 +191,8 @@ def main():
             st.markdown(f'<div class="chat-box user"><b>Bạn:</b><br>{q}</div>', unsafe_allow_html=True)
             
             st.markdown('<div class="chat-box bot"><b>Trợ lý:</b></div>', unsafe_allow_html=True)
-            st.markdown(a)
+            with st.container():
+                st.markdown(a)
             st.markdown("---")
     else:
         st.info("Hãy bắt đầu cuộc hội thoại bằng cách nhập câu hỏi phía dưới!")
@@ -200,11 +207,15 @@ def main():
             new_chat_button = st.form_submit_button(label="Tạo đoạn chat mới")
 
         if submit_button and user_input.strip() != "":
-            if not is_valid_files:
-                st.warning("Hệ thống đã chặn gửi tài liệu do vi phạm giới hạn kích thước. Vui lòng kiểm tra lại file ở Sidebar.")
-                response_text = get_response_from_api(user_input, None, model_choice)
+            if is_valid_files and combined_text.strip() != "":
+                context_to_send = combined_text
+                st.sidebar.info("Đang gửi kèm tài liệu cho AI...")
             else:
-                response_text = get_response_from_api(user_input, combined_text if uploaded_files else None, model_choice)
+                context_to_send = None
+                if not is_valid_files:
+                    st.warning("Tài liệu không hợp lệ hoặc vượt giới hạn, AI sẽ trả lời mà không có ngữ cảnh.")
+
+            response_text = get_response_from_api(user_input, context_to_send, model_choice)
             
             st.session_state.current_chat["questions"].append(user_input)
             st.session_state.current_chat["answers"].append(response_text)
