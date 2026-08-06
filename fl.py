@@ -101,12 +101,17 @@ def call_gemini(prompt_message, context_text=""):
     response = requests.post(url, headers=headers, json=payload, timeout=15)
     response.raise_for_status()
     return response.json()["candidates"][0]["content"]["parts"][0]["text"]
+
+print("[LOG FLASK] --- Đang khởi tạo Flask Backend... ---", flush=True)
+
 @app.route("/api/chat", methods=["POST"])
 def chat():
     data = request.json or {}
     message = data.get("message", "")
     context = data.get("context", "")
     model_choice = data.get("model", "Tự động (Auto)")
+    
+    print(f"[LOG FLASK] Nhận request - Model: '{model_choice}' | Msg: '{message[:30]}...'", flush=True)
     
     if not message:
         return jsonify({"response": "Bạn chưa nhập câu hỏi."}), 400
@@ -116,6 +121,7 @@ def chat():
             ai_response = call_groq(message, context)
             return jsonify({"response": ai_response})
         except Exception as e:
+            print(f"[LOG FLASK ERROR] Groq Lỗi: {e}", flush=True)
             return jsonify({"response": f"Lỗi khi kết nối với Groq: {str(e)}"}), 500
 
     elif model_choice == "Gemini (3.1 Flash)":
@@ -123,6 +129,7 @@ def chat():
             ai_response = call_gemini(message, context)
             return jsonify({"response": ai_response})
         except Exception as e:
+            print(f"[LOG FLASK ERROR] Gemini Lỗi: {e}", flush=True)
             return jsonify({"response": f"Lỗi khi kết nối với Gemini: {str(e)}"}), 500
 
     else:
@@ -130,15 +137,19 @@ def chat():
             ai_response = call_groq(message, context)
             return jsonify({"response": ai_response})
         except Exception as groq_error:
-            print(f"Groq dính lỗi: {groq_error}. Tự động chuyển kênh sơ cua sang Gemini...")
+            print(f"[LOG FLASK] Groq dính lỗi: {groq_error}. Chuyển sơ cua sang Gemini...", flush=True)
             try:
                 ai_response = call_gemini(message, context)
                 return jsonify({"response": ai_response})
             except Exception as gemini_error:
+                print(f"[LOG FLASK ERROR] Cả 2 AI đều lỗi: Groq({groq_error}) | Gemini({gemini_error})", flush=True)
                 return jsonify({
                     "response": f"Cả hai hệ thống AI đều đang bận hoặc quá tải. (Lỗi Groq: {groq_error} | Lỗi Gemini: {gemini_error})"
                 }), 500
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    # GIỮ NGUYÊN CỔNG 5000 ĐỂ KIỂM TRA LOG
+    PORT = 5000
+    print(f"[LOG FLASK] === THỬ CHẠY FLASK TRÊN PORT: {PORT} ===", flush=True)
+    
+    app.run(host="127.0.0.1", port=PORT)
