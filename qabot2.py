@@ -1,5 +1,5 @@
 import streamlit as st
-import PyPDF2, json, requests, os
+import PyPDF2, json, requests, os, subprocess, time
 
 css = """
 <style>
@@ -80,7 +80,13 @@ def read_json(file):
         return data
     except Exception as e:
         return {}
+@st.cache_resource
+def start_flask_backend():
+    process = subprocess.Popen(["python", "fl.py"])
+    time.sleep(2)  
+    return process
 
+start_flask_backend()
 BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:5000")
 def get_response_from_api(message, context=None, model_choice="Tự động (Auto)"):
     url = f"{BACKEND_URL}/api/chat"
