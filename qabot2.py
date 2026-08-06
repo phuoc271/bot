@@ -83,11 +83,13 @@ def read_json(file):
 @st.cache_resource
 def start_flask_backend():
     process = subprocess.Popen(["python", "fl.py"])
-    time.sleep(2)  
+    time.sleep(3)  
     return process
 
 start_flask_backend()
-BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:5000")
+
+raw_url = os.getenv("BACKEND_URL", "http://127.0.0.1:5000").strip().rstrip('/')
+BACKEND_URL = raw_url
 def get_response_from_api(message, context=None, model_choice="Tự động (Auto)"):
     url = f"{BACKEND_URL}/api/chat"
     payload = {
