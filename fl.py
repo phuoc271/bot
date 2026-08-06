@@ -102,7 +102,9 @@ def call_gemini(prompt_message, context_text=""):
     response.raise_for_status()
     return response.json()["candidates"][0]["content"]["parts"][0]["text"]
 
-print("[LOG FLASK] --- Đang khởi tạo Flask Backend... ---", flush=True)
+@app.route("/", methods=["GET", "HEAD"])
+def health_check():
+    return jsonify({"status": "Backend API đang hoạt động bình thường!"}), 200
 
 @app.route("/api/chat", methods=["POST"])
 def chat():
@@ -148,8 +150,6 @@ def chat():
                 }), 500
 
 if __name__ == "__main__":
-    # GIỮ NGUYÊN CỔNG 5000 ĐỂ KIỂM TRA LOG
-    PORT = 5000
-    print(f"[LOG FLASK] === THỬ CHẠY FLASK TRÊN PORT: {PORT} ===", flush=True)
-    
-    app.run(host="127.0.0.1", port=PORT)
+    port = int(os.environ.get("PORT", 5000))
+    print(f"[LOG FLASK] --- Khởi chạy Flask Backend trên host 0.0.0.0, port {port} ---", flush=True)
+    app.run(host="0.0.0.0", port=port)

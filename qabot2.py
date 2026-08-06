@@ -1,5 +1,5 @@
 import streamlit as st
-import PyPDF2, json, requests, os, subprocess, socket
+import PyPDF2, json, requests, os
 
 css = """
 <style>
@@ -80,18 +80,6 @@ def read_json(file):
         return data
     except Exception as e:
         return {}
-def is_port_in_use(port):
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        return s.connect_ex(('127.0.0.1', port)) == 0
-
-@st.cache_resource
-def start_flask_backend():
-    if not is_port_in_use(5000):
-        print("[STREAMLIT] Đang khởi chạy Flask Backend lần đầu...", flush=True)
-        subprocess.Popen(["python", "fl.py"])
-    else:
-        print("[STREAMLIT] Flask Backend đã đang chạy ở port 5000.", flush=True)
-start_flask_backend()
 
 raw_url = os.getenv("BACKEND_URL", "http://127.0.0.1:5000").strip().rstrip('/')
 BACKEND_URL = raw_url
@@ -120,7 +108,7 @@ def main():
     
     model_choice = st.sidebar.selectbox(
         "Chọn Model AI tư vấn:",
-        ["Tự động (Auto)", "Groq (Llama 3.3)", "Gemini (3.1 Flash Lite)"],
+        ["Tự động (Auto)", "Groq (Llama 3.3)", "Gemini (3.1 Flash)"],
         index=0
     )
     
