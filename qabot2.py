@@ -1,7 +1,5 @@
 import streamlit as st
-import PyPDF2
-import json
-import requests
+import PyPDF2, json, requests, os
 
 css = """
 <style>
@@ -83,8 +81,9 @@ def read_json(file):
     except Exception as e:
         return {}
 
+BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:5000")
 def get_response_from_api(message, context=None, model_choice="Tự động (Auto)"):
-    url = "http://127.0.0.1:5000/api/chat"
+    url = f"{BACKEND_URL}/api/chat"
     payload = {
         "message": message,
         "context": context,

@@ -1,11 +1,14 @@
 streamlit
-Flask
+flask
+flask-cors
+flask_sqlalchemy
+gunicorn
 requests
 python-dotenv
 PyPDF2
-google-generativeai
+python-docx
+docx2txt
+pypdf
+langchain-community
 groq
-flask_sqlalchemy
-flask-cors
-python-dotenv
-langchain-community unstructured[docx,pdf]                                        
+google-generativeai
