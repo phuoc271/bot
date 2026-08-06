@@ -95,6 +95,8 @@ start_flask_backend()
 
 raw_url = os.getenv("BACKEND_URL", "http://127.0.0.1:5000").strip().rstrip('/')
 BACKEND_URL = raw_url
+print(f"[STREAMLIT] BACKEND_URL đang sử dụng: {BACKEND_URL}", flush=True)
+
 def get_response_from_api(message, context=None, model_choice="Tự động (Auto)"):
     url = f"{BACKEND_URL}/api/chat"
     payload = {
