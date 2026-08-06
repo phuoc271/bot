@@ -87,7 +87,11 @@ def start_flask_backend():
     return process
 
 start_flask_backend()
-
+try:
+    subprocess.Popen(["python", "fl.py"])
+except Exception as e:
+    print(f"Lỗi khởi chạy Flask: {e}")
+    
 raw_url = os.getenv("BACKEND_URL", "http://127.0.0.1:5000").strip().rstrip('/')
 BACKEND_URL = raw_url
 def get_response_from_api(message, context=None, model_choice="Tự động (Auto)"):
