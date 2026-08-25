@@ -58,7 +58,7 @@ def call_groq(prompt_message, context_text=""):
     full_prompt = f"Dữ liệu tham khảo (Database/Context):\n{context_text}\n\nCâu hỏi khách hàng: {prompt_message}" if context_text else prompt_message
     
     payload = {
-        "model": "llama-3.3-70b-versatile",
+        "model": "openai/gpt-oss-120b",
         "messages": [
             {"role": "system", "content": system_instruction},
             {"role": "user", "content": full_prompt}
