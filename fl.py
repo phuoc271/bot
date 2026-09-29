@@ -58,7 +58,7 @@ def call_groq(prompt_message, context_text=""):
     full_prompt = f"Dữ liệu tham khảo (Database/Context):\n{context_text}\n\nCâu hỏi khách hàng: {prompt_message}" if context_text else prompt_message
     
     payload = {
-        "model": "openai/gpt-oss-120b",
+        "model": "qwen/qwen3.8-27b",
         "messages": [
             {"role": "system", "content": system_instruction},
             {"role": "user", "content": full_prompt}
@@ -71,7 +71,7 @@ def call_groq(prompt_message, context_text=""):
     return response.json()["choices"][0]["message"]["content"]
 
 def call_gemini(prompt_message, context_text=""):
-    model_name = "gemini-3.1-flash-lite"  
+    model_name = "gemini-3.6-flash"  
     
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
     headers = {
@@ -118,7 +118,7 @@ def chat():
     if not message:
         return jsonify({"response": "Bạn chưa nhập câu hỏi."}), 400
 
-    if model_choice == "Groq (Llama 3.3)":
+    if model_choice == "Groq (qwen3.8-27b)":
         try:
             ai_response = call_groq(message, context)
             return jsonify({"response": ai_response})
@@ -126,7 +126,7 @@ def chat():
             print(f"[LOG FLASK ERROR] Groq Lỗi: {e}", flush=True)
             return jsonify({"response": f"Lỗi khi kết nối với Groq: {str(e)}"}), 500
 
-    elif model_choice == "Gemini (3.1 Flash)":
+    elif model_choice == "Gemini (gemini-3.6-flash)":
         try:
             ai_response = call_gemini(message, context)
             return jsonify({"response": ai_response})

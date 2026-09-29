@@ -108,7 +108,7 @@ def main():
     
     model_choice = st.sidebar.selectbox(
         "Chọn Model AI tư vấn:",
-        ["Tự động (Auto)", "Groq (Llama 3.3)", "Gemini (3.1 Flash)"],
+        ["Tự động (Auto)", "Groq (qwen3.8-27b)", "Gemini (gemini-3.6-flash)"],
         index=0
     )
     
